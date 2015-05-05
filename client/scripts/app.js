@@ -1,12 +1,15 @@
-// YOUR CODE HERE:
-var app = {};
+var app = {}
+
 app.init = function() {
+  this.rooms = {}
 	this.server = 'https://api.parse.com/1/classes/chatterbox';
 	this.$roomSelect = $('#roomSelect');
 	this.$chats = $('#chats');
 	this.$formMessage = $('#formMessage');
+	this.fetch()
+  // this.pollMessages()
 };
-var pretend = "lol its almost like it works!"
+
 app.send = function(message) {
 	$.ajax({
 		// This is the url you should use to communicate with the parse API server.
@@ -32,7 +35,20 @@ app.fetch = function(message) {
 		data: JSON.stringify(message),
 		contentType: 'application/json',
 		success: function(data) {
-			console.log('chatterbox: Message received');
+      // on successful fetch(), delete all child divs of #chats
+      app.clearMessages();
+      // iterate through data from server
+			_.each(data.results, function(item){
+        // populate select dropdown element with rooms
+        app.addRoom(item.roomname);
+
+        // only add messages of currently selected room
+        var currentRoom = app.$roomSelect.val(); 
+        // app.addMessage(item.text );
+        if (item.roomname === currentRoom) {
+          app.addMessage(item.text, item.username)
+        }
+			})
 		},
 		error: function(data) {
 			// See: https://developer.mozilla.org/en-US/docs/Web/API/console.error
@@ -42,26 +58,23 @@ app.fetch = function(message) {
 };
 
 app.addRoom = function(name) {
-	this.$roomSelect.append($('<option></option>').attr("value", name).text(name));
+  if( app.rooms[name] === undefined ) {
+    app.$roomSelect.append($('<option></option>').attr("id", name).text(name));
+    app.rooms[name] = 1;
+  }
 };
 
-app.addMessage = function(message) {
-	// this.message = this.$formMessage.message.value
-	// $('#inputButton').on('click', function(form){
-	// 	this.$chats.append($('<div></div>').text(this.form.message)
-	// )});
-	// this.message = document.getElementById("message");
-	// var mess = this.message.value;
-	// this.$chats.append("<div>lol</div>");
+app.addMessage = function(message, user) {
 
-	$('#inputButton').submit($("#chats").append('<div></div>').text(message));
-		// e.preventDefault();
-		// // $('#chats').append($('<div></div>').text(message)
-		// 	console.log("test");
-
-	//});
+	app.$chats.append($('<div></div>').text(user + ": " + message))
+	
 };
 
-app.clearMessages = function(message) {
-	this.$chats.text(message);
-};
+app.clearMessages = function() {
+	this.$chats.empty()
+}
+
+app.pollMessages = function(data) {
+  console.log("fetching...")
+  setInterval(app.fetch, 5000)
+}
